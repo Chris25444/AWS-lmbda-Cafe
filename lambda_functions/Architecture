@@ -1,0 +1,30 @@
+# Architecture
+
+## High-level flow
+
+1. A café customer places an order on the web app running on an EC2 LAMP instance.
+2. The LAMP stack stores order data in a MySQL database on the same EC2 instance.
+3. The `salesAnalysisReportDataExtractor` Lambda:
+   - Runs inside a VPC
+   - Connects to the MySQL database (port 3306) using PyMySQL from a Lambda layer
+   - Reads database connection info from Systems Manager Parameter Store
+   - Returns aggregated sales data as JSON
+4. The `salesAnalysisReport` Lambda:
+   - Retrieves connection parameters from Parameter Store
+   - Invokes the data extractor Lambda
+   - Formats the sales report
+   - Publishes the report to an SNS topic
+5. Amazon SNS:
+   - Sends the report via email to subscribed recipients.
+6. Amazon EventBridge (CloudWatch Events):
+   - Triggers the `salesAnalysisReport` Lambda on a daily schedule (cron expression, Monday–Saturday at a set time).
+
+## Key AWS services
+
+- Lambda (two functions, plus one Lambda layer for PyMySQL)
+- EC2 (LAMP stack with MySQL)
+- Systems Manager Parameter Store (DB credentials)
+- SNS (email notifications)
+- EventBridge / CloudWatch Events (scheduled trigger)
+- IAM (Lambda execution roles and policies)
+- VPC (subnet + security group for DB access)
